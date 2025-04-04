@@ -42,6 +42,30 @@ func TestDequote(t *testing.T) {
 	}
 }
 
+func TestDoParse(t *testing.T) {
+	in := `noval dup=val1 dup=val2 nondup=val with-dashes with-dashes-val=val "key quotes" \"key escaped quotes\" vq="value quotes" veq=\"value escaped quotes\"`
+	expKargs := []Karg{
+		{CanonicalKey: "noval", Key: "noval", Raw: "noval", Value: ""},
+		{CanonicalKey: "dup", Key: "dup", Raw: "dup=val1", Value: "val1"},
+		{CanonicalKey: "dup", Key: "dup", Raw: "dup=val2", Value: "val2"},
+		{CanonicalKey: "nondup", Key: "nondup", Raw: "nondup=val", Value: "val"},
+		{CanonicalKey: "with_dashes", Key: "with-dashes", Raw: "with-dashes", Value: ""},
+		{CanonicalKey: "with_dashes_val", Key: "with-dashes-val", Raw: "with-dashes-val=val", Value: "val"},
+		{CanonicalKey: `"key quotes"`, Key: `"key quotes"`, Raw: `"key quotes"`, Value: ""},
+		{CanonicalKey: `\"key escaped quotes\"`, Key: `\"key escaped quotes\"`, Raw: `\"key escaped quotes\"`, Value: ""},
+		{CanonicalKey: "vq", Key: "vq", Raw: `vq="value quotes"`, Value: `"value quotes"`},
+		{CanonicalKey: "veq", Key: "veq", Raw: `veq=\"value escaped quotes\"`, Value: `\"value escaped quotes\"`},
+	}
+	idx := 0
+	doParse(in, func(flag, key, canonicalKey, value, trimmedValue string) {
+		assert.Equal(t, expKargs[idx].Raw, flag, "raw values mismatch")
+		assert.Equal(t, expKargs[idx].Key, key, "keys mismatch")
+		assert.Equal(t, expKargs[idx].CanonicalKey, canonicalKey, "canonical keys mismatch")
+		assert.Equal(t, expKargs[idx].Value, value, "values mismatch")
+		idx++
+	})
+}
+
 func TestEnquote(t *testing.T) {
 	checks := [][]string{
 		// Input, expected output
@@ -117,28 +141,4 @@ func TestParseToStruct(t *testing.T) {
 	}
 	// Make sure last pointer in linked list actually points to last item
 	assert.Equal(t, last, k.last)
-}
-
-func TestDoParse(t *testing.T) {
-	in := `noval dup=val1 dup=val2 nondup=val with-dashes with-dashes-val=val "key quotes" \"key escaped quotes\" vq="value quotes" veq=\"value escaped quotes\"`
-	expKargs := []Karg{
-		{CanonicalKey: "noval", Key: "noval", Raw: "noval", Value: ""},
-		{CanonicalKey: "dup", Key: "dup", Raw: "dup=val1", Value: "val1"},
-		{CanonicalKey: "dup", Key: "dup", Raw: "dup=val2", Value: "val2"},
-		{CanonicalKey: "nondup", Key: "nondup", Raw: "nondup=val", Value: "val"},
-		{CanonicalKey: "with_dashes", Key: "with-dashes", Raw: "with-dashes", Value: ""},
-		{CanonicalKey: "with_dashes_val", Key: "with-dashes-val", Raw: "with-dashes-val=val", Value: "val"},
-		{CanonicalKey: `"key quotes"`, Key: `"key quotes"`, Raw: `"key quotes"`, Value: ""},
-		{CanonicalKey: `\"key escaped quotes\"`, Key: `\"key escaped quotes\"`, Raw: `\"key escaped quotes\"`, Value: ""},
-		{CanonicalKey: "vq", Key: "vq", Raw: `vq="value quotes"`, Value: `"value quotes"`},
-		{CanonicalKey: "veq", Key: "veq", Raw: `veq=\"value escaped quotes\"`, Value: `\"value escaped quotes\"`},
-	}
-	idx := 0
-	doParse(in, func(flag, key, canonicalKey, value, trimmedValue string) {
-		assert.Equal(t, expKargs[idx].Raw, flag, "raw values mismatch")
-		assert.Equal(t, expKargs[idx].Key, key, "keys mismatch")
-		assert.Equal(t, expKargs[idx].CanonicalKey, canonicalKey, "canonical keys mismatch")
-		assert.Equal(t, expKargs[idx].Value, value, "values mismatch")
-		idx++
-	})
 }

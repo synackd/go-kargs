@@ -9,51 +9,6 @@ import (
 	kargs "github.com/synackd/go-kargs"
 )
 
-func ExampleNewKargs() {
-	cmdline := `nomodeset root=live:https://example.tld/image.squashfs console=tty0,115200n8 console=ttyS0,115200n8 printk.devkmsg=ratelimit printk.time=1`
-
-	// Parse kernel command line arguments
-	k := kargs.NewKargs([]byte(cmdline))
-	fmt.Println(k)
-
-	// Get values
-	consoleVals, consoleSet := k.GetKarg("console")
-	fmt.Printf("console set: %v; values: %v\n", consoleSet, consoleVals)
-
-	// Get module flags
-	modvals := k.FlagsForModule("printk")
-	fmt.Printf("printk module values: %v\n", modvals)
-
-	// Output:
-	// nomodeset root=live:https://example.tld/image.squashfs console=tty0,115200n8 console=ttyS0,115200n8 printk.devkmsg=ratelimit printk.time=1
-	// console set: true; values: [tty0,115200n8 ttyS0,115200n8]
-	// printk module values: devkmsg=ratelimit time=1
-}
-
-func ExampleNewKargsEmpty() {
-	k := kargs.NewKargsEmpty()
-	fmt.Printf("%q\n", k)
-
-	err := k.SetKarg("console", "tty0,115200n8")
-	if err != nil {
-		fmt.Printf("error: %v\n", err)
-	}
-	fmt.Printf("%q\n", k)
-
-	// Output:
-	// ""
-	// "console=tty0,115200n8"
-}
-
-func ExampleKargs_String() {
-	cmdline := `nomodeset root=live:https://example.tld/image.squashfs console=tty0,115200n8 console=ttyS0,115200n8 printk.devkmsg=ratelimit printk.time=1`
-	k := kargs.NewKargs([]byte(cmdline))
-	fmt.Println(k.String())
-
-	// Output:
-	// nomodeset root=live:https://example.tld/image.squashfs console=tty0,115200n8 console=ttyS0,115200n8 printk.devkmsg=ratelimit printk.time=1
-}
-
 func ExampleKargs_ContainsKarg() {
 	cmdline := `key1 key2=val`
 	k := kargs.NewKargs([]byte(cmdline))
@@ -74,6 +29,32 @@ func ExampleKargs_ContainsKarg() {
 	// contains key1: true
 	// contains key2: true
 	// contains key3: false
+}
+
+func ExampleKargs_DeleteKarg() {
+	k := kargs.NewKargs([]byte("noval key=val"))
+	err := k.DeleteKarg("key")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	}
+	fmt.Println(k)
+
+	// Output:
+	// noval
+}
+
+func ExampleKargs_DeleteKargByValue() {
+	cmdline := `key=val1 key=val2 key=val3`
+	k := kargs.NewKargs([]byte(cmdline))
+
+	err := k.DeleteKargByValue("key", "val2")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	}
+	fmt.Println(k)
+
+	// Output:
+	// key=val1 key=val3
 }
 
 func ExampleKargs_GetKarg() {
@@ -132,28 +113,47 @@ func ExampleKargs_SetKarg_replaceMultiple() {
 	// console=tty1,115200n8
 }
 
-func ExampleKargs_DeleteKarg() {
-	k := kargs.NewKargs([]byte("noval key=val"))
-	err := k.DeleteKarg("key")
-	if err != nil {
-		fmt.Printf("error: %v\n", err)
-	}
-	fmt.Println(k)
+func ExampleKargs_String() {
+	cmdline := `nomodeset root=live:https://example.tld/image.squashfs console=tty0,115200n8 console=ttyS0,115200n8 printk.devkmsg=ratelimit printk.time=1`
+	k := kargs.NewKargs([]byte(cmdline))
+	fmt.Println(k.String())
 
 	// Output:
-	// noval
+	// nomodeset root=live:https://example.tld/image.squashfs console=tty0,115200n8 console=ttyS0,115200n8 printk.devkmsg=ratelimit printk.time=1
 }
 
-func ExampleKargs_DeleteKargByValue() {
-	cmdline := `key=val1 key=val2 key=val3`
-	k := kargs.NewKargs([]byte(cmdline))
+func ExampleNewKargs() {
+	cmdline := `nomodeset root=live:https://example.tld/image.squashfs console=tty0,115200n8 console=ttyS0,115200n8 printk.devkmsg=ratelimit printk.time=1`
 
-	err := k.DeleteKargByValue("key", "val2")
+	// Parse kernel command line arguments
+	k := kargs.NewKargs([]byte(cmdline))
+	fmt.Println(k)
+
+	// Get values
+	consoleVals, consoleSet := k.GetKarg("console")
+	fmt.Printf("console set: %v; values: %v\n", consoleSet, consoleVals)
+
+	// Get module flags
+	modvals := k.FlagsForModule("printk")
+	fmt.Printf("printk module values: %v\n", modvals)
+
+	// Output:
+	// nomodeset root=live:https://example.tld/image.squashfs console=tty0,115200n8 console=ttyS0,115200n8 printk.devkmsg=ratelimit printk.time=1
+	// console set: true; values: [tty0,115200n8 ttyS0,115200n8]
+	// printk module values: devkmsg=ratelimit time=1
+}
+
+func ExampleNewKargsEmpty() {
+	k := kargs.NewKargsEmpty()
+	fmt.Printf("%q\n", k)
+
+	err := k.SetKarg("console", "tty0,115200n8")
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 	}
-	fmt.Println(k)
+	fmt.Printf("%q\n", k)
 
 	// Output:
-	// key=val1 key=val3
+	// ""
+	// "console=tty0,115200n8"
 }

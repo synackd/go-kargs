@@ -9,10 +9,21 @@ import (
 	"unicode"
 )
 
-// parse parses the raw byte slice into a Kargs struct and returns a pointer
-// to it.
-func parse(raw []byte) *Kargs {
-	return parseToStruct(string(raw))
+// Kernel variables must allow '-' and '_' to be equivalent in variable names.
+// The canonicalized key will replace '-' with '_' in the keys.
+func canonicalizeKey(key string) string {
+	return strings.Replace(key, "-", "_", -1)
+}
+
+// checkKey checks the given unquoted key for invalid characters and errs if any
+// are present. Invalid characters are such whitespace characters as spaces,
+// tabs, and newlines.
+func checkKey(key string) error {
+	invalidKeyChars := " \n\t"
+	if strings.ContainsAny(key, invalidKeyChars) {
+		return fmt.Errorf("checking key %s: %w", key, ErrInvalidKey)
+	}
+	return nil
 }
 
 // dequote removes single and double quotes that aren't escaped with a
@@ -57,38 +68,6 @@ func dequote(line string) string {
 		newLine = append(newLine, c)
 	}
 	return string(newLine)
-}
-
-// enquote surrounds a string in double quotes if it contains spaces and isn't
-// already surrounded by single or double quotes.
-func enquote(line string) string {
-	quotationMarks := `"'`
-	if strings.ContainsAny(line, ` `) {
-		if strings.ContainsAny(string(line[0]), quotationMarks) && strings.ContainsAny(string(line[len(line)-1]), quotationMarks) {
-			return line
-		} else {
-			return fmt.Sprintf("%q", line)
-		}
-	} else {
-		return line
-	}
-}
-
-// checkKey checks the given unquoted key for invalid characters and errs if any
-// are present. Invalid characters are such whitespace characters as spaces,
-// tabs, and newlines.
-func checkKey(key string) error {
-	invalidKeyChars := " \n\t"
-	if strings.ContainsAny(key, invalidKeyChars) {
-		return fmt.Errorf("checking key %s: %w", key, ErrInvalidKey)
-	}
-	return nil
-}
-
-// Kernel variables must allow '-' and '_' to be equivalent in variable names.
-// The canonicalized key will replace '-' with '_' in the keys.
-func canonicalizeKey(key string) string {
-	return strings.Replace(key, "-", "_", -1)
 }
 
 // doParse is a generic parsing function that tokenizes input by spaces,
@@ -136,6 +115,27 @@ func doParse(input string, handler func(flag, key, canonicalKey, value, trimmedV
 		// Call the passed handler for each token
 		handler(flag, key, canonicalKey, value, trimmedValue)
 	}
+}
+
+// enquote surrounds a string in double quotes if it contains spaces and isn't
+// already surrounded by single or double quotes.
+func enquote(line string) string {
+	quotationMarks := `"'`
+	if strings.ContainsAny(line, ` `) {
+		if strings.ContainsAny(string(line[0]), quotationMarks) && strings.ContainsAny(string(line[len(line)-1]), quotationMarks) {
+			return line
+		} else {
+			return fmt.Sprintf("%q", line)
+		}
+	} else {
+		return line
+	}
+}
+
+// parse parses the raw byte slice into a Kargs struct and returns a pointer
+// to it.
+func parse(raw []byte) *Kargs {
+	return parseToStruct(string(raw))
 }
 
 // parseToStruct takes a kernel command line string and parses it into a Kargs

@@ -9,105 +9,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewKargs(t *testing.T) {
-	in := `key1 key2=val`
-	k := NewKargs([]byte(in))
-	// Since NewKargs calls parseToStruct, more in-depth testing is done for
-	// that function. Here, we just make sure the pointer is not nil and
-	// that stringifying it matches the input.
-	assert.NotNil(t, k)
-	assert.Equal(t, in, k.String())
-}
-
-func TestNewKargsEmpty(t *testing.T) {
-	// Test empty
-	emptyK := NewKargsEmpty()
-	assert.NotNil(t, emptyK)
-	assert.Empty(t, emptyK.numParams)
-	assert.Nil(t, emptyK.list)
-	assert.Nil(t, emptyK.last)
-	assert.Empty(t, emptyK.keyMap)
-}
-
-func TestKargs_String(t *testing.T) {
-	cmdline := `nomodeset root=live:https://example.tld/image.squashfs console=tty0,115200n8 console=ttyS0,115200n8 printk.devkmsg=ratelimit printk.time=1`
-	k := NewKargs([]byte(cmdline))
-	assert.Equal(t, cmdline, k.String())
-}
-
 func TestKargs_ContainsKarg(t *testing.T) {
 	k := NewKargs([]byte("test1"))
 	assert.True(t, k.ContainsKarg("test1"))
 	assert.False(t, k.ContainsKarg("test2"))
-}
-
-func TestKargs_GetKarg(t *testing.T) {
-	k := NewKargs([]byte("noval multkey multkey=val1 multkey=val2 key=val"))
-
-	noval, novalSet := k.GetKarg("noval")
-	assert.True(t, novalSet)
-	assert.Len(t, noval, 1)
-	assert.Empty(t, noval[0])
-
-	keyval, keyvalSet := k.GetKarg("key")
-	assert.True(t, keyvalSet)
-	assert.Len(t, keyval, 1)
-	assert.Equal(t, "val", keyval[0])
-
-	multkey, multkeySet := k.GetKarg("multkey")
-	assert.True(t, multkeySet)
-	assert.Len(t, multkey, 3)
-	assert.Empty(t, multkey[0])
-	assert.Equal(t, "val1", multkey[1])
-	assert.Equal(t, "val2", multkey[2])
-}
-
-func TestKargs_SetKarg_createReplace(t *testing.T) {
-	// Test simple creation and replacement
-	k := NewKargsEmpty()
-
-	err := k.SetKarg("key", "")
-	assert.NoError(t, err)
-	assert.Equal(t, 1, k.numParams)
-	assert.Len(t, k.keyMap, 1)
-	vals, set := k.GetKarg("key")
-	assert.True(t, set)
-	assert.Equal(t, []string{""}, vals)
-
-	err = k.SetKarg("key", "val1")
-	assert.NoError(t, err)
-	assert.Equal(t, 1, k.numParams)
-	assert.Len(t, k.keyMap, 1)
-	vals, set = k.GetKarg("key")
-	assert.True(t, set)
-	assert.Equal(t, []string{"val1"}, vals)
-}
-
-func TestKargs_SetKarg_replaceMultiple(t *testing.T) {
-	// Test replacing multiple values
-	k := NewKargs([]byte("key=val1 key=val2"))
-	assert.Equal(t, 2, k.numParams)
-	assert.Len(t, k.keyMap, 1)
-	vals, set := k.GetKarg("key")
-	assert.True(t, set)
-	assert.Equal(t, []string{"val1", "val2"}, vals)
-
-	err := k.SetKarg("key", "val3")
-	assert.NoError(t, err)
-	assert.Equal(t, 1, k.numParams)
-	assert.Len(t, k.keyMap, 1)
-	vals, set = k.GetKarg("key")
-	assert.True(t, set)
-	assert.Equal(t, []string{"val3"}, vals)
-
-	// Test unsetting value
-	err = k.SetKarg("key", "")
-	assert.NoError(t, err)
-	assert.Equal(t, 1, k.numParams)
-	assert.Len(t, k.keyMap, 1)
-	vals, set = k.GetKarg("key")
-	assert.True(t, set)
-	assert.Equal(t, []string{""}, vals)
 }
 
 func TestKargs_DeleteKarg_noValue(t *testing.T) {
@@ -185,4 +90,99 @@ func TestKargs_FlagsForModule_nonexistent(t *testing.T) {
 	// Test non-existent kargs
 	mods := k.FlagsForModule("nonexistent")
 	assert.Empty(t, mods)
+}
+
+func TestKargs_GetKarg(t *testing.T) {
+	k := NewKargs([]byte("noval multkey multkey=val1 multkey=val2 key=val"))
+
+	noval, novalSet := k.GetKarg("noval")
+	assert.True(t, novalSet)
+	assert.Len(t, noval, 1)
+	assert.Empty(t, noval[0])
+
+	keyval, keyvalSet := k.GetKarg("key")
+	assert.True(t, keyvalSet)
+	assert.Len(t, keyval, 1)
+	assert.Equal(t, "val", keyval[0])
+
+	multkey, multkeySet := k.GetKarg("multkey")
+	assert.True(t, multkeySet)
+	assert.Len(t, multkey, 3)
+	assert.Empty(t, multkey[0])
+	assert.Equal(t, "val1", multkey[1])
+	assert.Equal(t, "val2", multkey[2])
+}
+
+func TestKargs_SetKarg_createReplace(t *testing.T) {
+	// Test simple creation and replacement
+	k := NewKargsEmpty()
+
+	err := k.SetKarg("key", "")
+	assert.NoError(t, err)
+	assert.Equal(t, 1, k.numParams)
+	assert.Len(t, k.keyMap, 1)
+	vals, set := k.GetKarg("key")
+	assert.True(t, set)
+	assert.Equal(t, []string{""}, vals)
+
+	err = k.SetKarg("key", "val1")
+	assert.NoError(t, err)
+	assert.Equal(t, 1, k.numParams)
+	assert.Len(t, k.keyMap, 1)
+	vals, set = k.GetKarg("key")
+	assert.True(t, set)
+	assert.Equal(t, []string{"val1"}, vals)
+}
+
+func TestKargs_SetKarg_replaceMultiple(t *testing.T) {
+	// Test replacing multiple values
+	k := NewKargs([]byte("key=val1 key=val2"))
+	assert.Equal(t, 2, k.numParams)
+	assert.Len(t, k.keyMap, 1)
+	vals, set := k.GetKarg("key")
+	assert.True(t, set)
+	assert.Equal(t, []string{"val1", "val2"}, vals)
+
+	err := k.SetKarg("key", "val3")
+	assert.NoError(t, err)
+	assert.Equal(t, 1, k.numParams)
+	assert.Len(t, k.keyMap, 1)
+	vals, set = k.GetKarg("key")
+	assert.True(t, set)
+	assert.Equal(t, []string{"val3"}, vals)
+
+	// Test unsetting value
+	err = k.SetKarg("key", "")
+	assert.NoError(t, err)
+	assert.Equal(t, 1, k.numParams)
+	assert.Len(t, k.keyMap, 1)
+	vals, set = k.GetKarg("key")
+	assert.True(t, set)
+	assert.Equal(t, []string{""}, vals)
+}
+
+func TestKargs_String(t *testing.T) {
+	cmdline := `nomodeset root=live:https://example.tld/image.squashfs console=tty0,115200n8 console=ttyS0,115200n8 printk.devkmsg=ratelimit printk.time=1`
+	k := NewKargs([]byte(cmdline))
+	assert.Equal(t, cmdline, k.String())
+}
+
+func TestNewKargs(t *testing.T) {
+	in := `key1 key2=val`
+	k := NewKargs([]byte(in))
+	// Since NewKargs calls parseToStruct, more in-depth testing is done for
+	// that function. Here, we just make sure the pointer is not nil and
+	// that stringifying it matches the input.
+	assert.NotNil(t, k)
+	assert.Equal(t, in, k.String())
+}
+
+func TestNewKargsEmpty(t *testing.T) {
+	// Test empty
+	emptyK := NewKargsEmpty()
+	assert.NotNil(t, emptyK)
+	assert.Empty(t, emptyK.numParams)
+	assert.Nil(t, emptyK.list)
+	assert.Nil(t, emptyK.last)
+	assert.Empty(t, emptyK.keyMap)
 }

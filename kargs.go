@@ -48,21 +48,90 @@ func NewKargsEmpty() *Kargs {
 	return NewKargs([]byte{})
 }
 
-// String returns the karg list in string form, ready to be used as a kernel
-// command line argument string.
-func (k *Kargs) String() string {
-	var s []string
-	for llTracker := k.list; llTracker != nil; llTracker = llTracker.next {
-		s = append(s, llTracker.karg.String())
-	}
-	return strings.Join(s, " ")
-}
-
 // ContainsKarg verifies that the kernel command line argument identified by key
 // has been set, whether it has a value or not.
 func (k *Kargs) ContainsKarg(key string) bool {
 	_, present := k.GetKarg(key)
 	return present
+}
+
+// DeleteKarg deletes all instances of key in the kernel command line argument
+// list, returning an error if it was not found or a removal error occurs.
+func (k *Kargs) DeleteKarg(key string) error {
+	canonicalKey := canonicalizeKey(key)
+	if _, exists := k.keyMap[key]; exists {
+		for _, ptr := range k.keyMap[canonicalKey] {
+			if err := remove(ptr); err != nil {
+				return fmt.Errorf("failed to delete key %s with value %s: %w", key, ptr.karg.Value, err)
+			} else {
+				k.numParams--
+			}
+		}
+		delete(k.keyMap, canonicalKey)
+	} else {
+		return fmt.Errorf("failed to delete key %s: %w", key, ErrNotExists)
+	}
+
+	return nil
+}
+
+// DeleteKarByValue only deletes the instance of key that has value of value.
+func (k *Kargs) DeleteKargByValue(key, value string) error {
+	canonicalKey := canonicalizeKey(key)
+	if _, exists := k.keyMap[key]; exists {
+		for idx, ptr := range k.keyMap[canonicalKey] {
+			if value == ptr.karg.Value {
+				if err := remove(ptr); err != nil {
+					return fmt.Errorf("failed to delete key %s with value %s: %w", key, ptr.karg.Value, err)
+				}
+				if len(k.keyMap[canonicalKey]) == 1 {
+					k.keyMap[canonicalKey] = []*kargItem{}
+				} else if idx == len(k.keyMap[canonicalKey])-1 {
+					l := len(k.keyMap[canonicalKey]) - 1
+					k.keyMap[canonicalKey] = k.keyMap[canonicalKey][:l-1]
+				} else if idx == 0 {
+					k.keyMap[canonicalKey] = k.keyMap[canonicalKey][1:]
+				} else {
+					k.keyMap[canonicalKey] = append(k.keyMap[canonicalKey][:idx], k.keyMap[canonicalKey][(idx+1):]...)
+				}
+				k.numParams--
+				return nil
+			}
+		}
+	} else {
+		return fmt.Errorf("failed to delete key %s: %w", key, ErrNotExists)
+	}
+
+	return fmt.Errorf("could not find value %s for key %s: %w", value, key, ErrNotExists)
+}
+
+// FlagsForModule gets all flags for a designated module and returns them as a
+// space-seperated string designed to be passed to insmod. Note that similarly
+// to flags, module names with - and _ are treated the same.
+func (k *Kargs) FlagsForModule(name string) string {
+	var ret string
+	flagsAdded := make(map[string]bool) // Ensures duplicate flags aren't both added
+	// Module flags come as moduleName.flag in /proc/cmdline
+	prefix := canonicalizeKey(name) + "."
+	first := true
+	for llTracker := k.list; llTracker != nil; llTracker = llTracker.next {
+		canonicalFlag := canonicalizeKey(llTracker.karg.Key)
+		if !flagsAdded[canonicalFlag] && strings.HasPrefix(canonicalFlag, prefix) {
+			flagsAdded[canonicalFlag] = true
+			if !first {
+				ret += " "
+			} else {
+				first = false
+			}
+			// They are passed to insmod space seperated as flag=val
+			if llTracker.karg.Value == "" {
+				ret += strings.TrimPrefix(canonicalFlag, prefix)
+			} else {
+				ret += strings.TrimPrefix(canonicalFlag, prefix) + "=" + llTracker.karg.Value
+			}
+		}
+	}
+	return ret
 }
 
 // GetKarg returns the value list of the karg identified by key, as well as
@@ -145,81 +214,12 @@ func (k *Kargs) SetKarg(key, value string) error {
 	return nil
 }
 
-// DeleteKarg deletes all instances of key in the kernel command line argument
-// list, returning an error if it was not found or a removal error occurs.
-func (k *Kargs) DeleteKarg(key string) error {
-	canonicalKey := canonicalizeKey(key)
-	if _, exists := k.keyMap[key]; exists {
-		for _, ptr := range k.keyMap[canonicalKey] {
-			if err := remove(ptr); err != nil {
-				return fmt.Errorf("failed to delete key %s with value %s: %w", key, ptr.karg.Value, err)
-			} else {
-				k.numParams--
-			}
-		}
-		delete(k.keyMap, canonicalKey)
-	} else {
-		return fmt.Errorf("failed to delete key %s: %w", key, ErrNotExists)
-	}
-
-	return nil
-}
-
-// DeleteKarByValue only deletes the instance of key that has value of value.
-func (k *Kargs) DeleteKargByValue(key, value string) error {
-	canonicalKey := canonicalizeKey(key)
-	if _, exists := k.keyMap[key]; exists {
-		for idx, ptr := range k.keyMap[canonicalKey] {
-			if value == ptr.karg.Value {
-				if err := remove(ptr); err != nil {
-					return fmt.Errorf("failed to delete key %s with value %s: %w", key, ptr.karg.Value, err)
-				}
-				if len(k.keyMap[canonicalKey]) == 1 {
-					k.keyMap[canonicalKey] = []*kargItem{}
-				} else if idx == len(k.keyMap[canonicalKey])-1 {
-					l := len(k.keyMap[canonicalKey]) - 1
-					k.keyMap[canonicalKey] = k.keyMap[canonicalKey][:l-1]
-				} else if idx == 0 {
-					k.keyMap[canonicalKey] = k.keyMap[canonicalKey][1:]
-				} else {
-					k.keyMap[canonicalKey] = append(k.keyMap[canonicalKey][:idx], k.keyMap[canonicalKey][(idx+1):]...)
-				}
-				k.numParams--
-				return nil
-			}
-		}
-	} else {
-		return fmt.Errorf("failed to delete key %s: %w", key, ErrNotExists)
-	}
-
-	return fmt.Errorf("could not find value %s for key %s: %w", value, key, ErrNotExists)
-}
-
-// FlagsForModule gets all flags for a designated module and returns them as a
-// space-seperated string designed to be passed to insmod. Note that similarly
-// to flags, module names with - and _ are treated the same.
-func (k *Kargs) FlagsForModule(name string) string {
-	var ret string
-	flagsAdded := make(map[string]bool) // Ensures duplicate flags aren't both added
-	// Module flags come as moduleName.flag in /proc/cmdline
-	prefix := canonicalizeKey(name) + "."
-	first := true
+// String returns the karg list in string form, ready to be used as a kernel
+// command line argument string.
+func (k *Kargs) String() string {
+	var s []string
 	for llTracker := k.list; llTracker != nil; llTracker = llTracker.next {
-		canonicalFlag := canonicalizeKey(llTracker.karg.Key)
-		if !flagsAdded[canonicalFlag] && strings.HasPrefix(canonicalFlag, prefix) {
-			flagsAdded[canonicalFlag] = true
-			if !first {
-				ret += " "
-			} else {
-				first = false
-			}
-			// They are passed to insmod space seperated as flag=val
-			if llTracker.karg.Value == "" {
-				ret += strings.TrimPrefix(canonicalFlag, prefix)
-			} else {
-				ret += strings.TrimPrefix(canonicalFlag, prefix) + "=" + llTracker.karg.Value
-			}
-		}
+		s = append(s, llTracker.karg.String())
 	}
-	return ret
+	return strings.Join(s, " ")
 }
