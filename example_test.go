@@ -9,6 +9,25 @@ import (
 	kargs "github.com/synackd/go-kargs"
 )
 
+func ExampleKargs_AppendKargs() {
+	cmdline := `key=val1`
+	k := kargs.NewKargs([]byte(cmdline))
+	fmt.Println(k)
+
+	// Append new values
+	k.AppendKargs("key=val2 key=val3")
+	fmt.Println(k)
+
+	// Try to append existing (remains unchanged)
+	k.AppendKargs("key=val1")
+	fmt.Println(k)
+
+	// Output:
+	// key=val1
+	// key=val1 key=val2 key=val3
+	// key=val1 key=val2 key=val3
+}
+
 func ExampleKargs_ContainsKarg() {
 	cmdline := `key1 key2=val`
 	k := kargs.NewKargs([]byte(cmdline))

@@ -48,6 +48,46 @@ func NewKargsEmpty() *Kargs {
 	return NewKargs([]byte{})
 }
 
+// AppendKargs parses line into kernel command line arguments and appends them
+// to the stored command line arguments. If a key already exists with the
+// specified value, it is not appended.
+func (k *Kargs) AppendKargs(line string) {
+	doParse(line, func(flag, key, canonicalKey, value, trimmedValue string) {
+		// If key exists, check if value already exists and do not
+		// append if so.
+		vals, keyIsSet := k.GetKarg(canonicalKey)
+		if keyIsSet {
+			for _, eVal := range vals {
+				if value == eVal {
+					// Value already exists, do not append.
+					return
+				}
+			}
+		}
+
+		// Value does not exist yet, append key with new value
+		newKarg := Karg{
+			Key:          key,
+			CanonicalKey: canonicalKey,
+			Value:        value,
+			Raw:          flag,
+		}
+		newKargItem := &kargItem{
+			karg: newKarg,
+			prev: k.last,
+		}
+		if k.list == nil {
+			k.list = newKargItem
+			k.last = k.list
+		} else {
+			k.last.next = newKargItem
+			k.last = newKargItem
+		}
+		k.keyMap[canonicalKey] = append(k.keyMap[canonicalKey], newKargItem)
+		k.numParams++
+	})
+}
+
 // ContainsKarg verifies that the kernel command line argument identified by key
 // has been set, whether it has a value or not.
 func (k *Kargs) ContainsKarg(key string) bool {

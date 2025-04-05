@@ -9,6 +9,59 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestKargs_AppendKargs_existingVal(t *testing.T) {
+	k := NewKargs([]byte(`key=val1 key=val2 key=val3`))
+
+	k.AppendKargs("key=val2")
+	assert.Equal(t, 3, k.numParams)
+	assert.Len(t, k.keyMap, 1)
+	vals, set := k.GetKarg("key")
+	assert.True(t, set)
+	assert.Equal(t, []string{"val1", "val2", "val3"}, vals)
+}
+
+func TestKargs_AppendKargs_fromEmpty(t *testing.T) {
+	k := NewKargsEmpty()
+
+	k.AppendKargs("noval")
+	assert.Equal(t, 1, k.numParams)
+	assert.Len(t, k.keyMap, 1)
+	vals, set := k.GetKarg("noval")
+	assert.True(t, set)
+	assert.Equal(t, []string{""}, vals)
+}
+
+func TestKargs_AppendKargs_fromNonEmpty(t *testing.T) {
+	k := NewKargs([]byte("existingarg"))
+
+	k.AppendKargs("noval")
+	assert.Equal(t, 2, k.numParams)
+	assert.Len(t, k.keyMap, 2)
+	vals, set := k.GetKarg("noval")
+	assert.True(t, set)
+	assert.Equal(t, []string{""}, vals)
+}
+
+func TestKargs_AppendKargs_multiple(t *testing.T) {
+	k := NewKargs([]byte("key=val1 key=val2"))
+
+	k.AppendKargs("key=val3 key=val4 extra")
+	assert.Equal(t, 5, k.numParams)
+	assert.Len(t, k.keyMap, 2)
+	assert.Equal(t, `key=val1 key=val2 key=val3 key=val4 extra`, k.String())
+}
+
+func TestKargs_AppendKargs_novalToVal(t *testing.T) {
+	k := NewKargs([]byte(`key`))
+
+	k.AppendKargs("key=val")
+	assert.Equal(t, 2, k.numParams)
+	assert.Len(t, k.keyMap, 1)
+	vals, set := k.GetKarg("key")
+	assert.True(t, set)
+	assert.Equal(t, []string{"", "val"}, vals)
+}
+
 func TestKargs_ContainsKarg(t *testing.T) {
 	k := NewKargs([]byte("test1"))
 	assert.True(t, k.ContainsKarg("test1"))
