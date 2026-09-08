@@ -4,41 +4,92 @@
 package kargs
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCanonicalizeKey(t *testing.T) {
 	checks := [][]string{
 		// Input, expected output
+		[]string{``, ``},
 		[]string{`with-hyphens`, `with_hyphens`},
 		[]string{`with_underscores`, `with_underscores`},
+		[]string{`with-many-hyphens`, `with_many_hyphens`},
+		[]string{`mix-ed_and_mix-ed`, `mix_ed_and_mix_ed`},
+		[]string{`-leading`, `_leading`},
+		[]string{`trailing-`, `trailing_`},
+		[]string{`---`, `___`},
+		[]string{`___`, `___`},
 	}
 	for _, check := range checks {
 		in := check[0]
 		want := check[1]
 		have := canonicalizeKey(in)
-		assert.Equal(t, have, want)
+		assert.Equal(t, want, have)
+	}
+}
+
+func TestCheckKey(t *testing.T) {
+	tests := []struct {
+		name    string
+		key     string
+		wantErr bool
+	}{
+		{"empty", "", false},
+		{"hyphens", "valid-key", false},
+		{"underscores", "valid_key", false},
+		{"dotted", "module.flag", false},
+		{"space", "key with space", true},
+		{"tab", "key\twith\ttab", true},
+		{"newline", "key\nwith\nnewline", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := checkKey(tt.key)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.True(t, errors.Is(err, ErrInvalidKey))
+			} else {
+				assert.NoError(t, err)
+			}
+		})
 	}
 }
 
 func TestDequote(t *testing.T) {
 	checks := [][]string{
 		// Input, expected output
+		[]string{``, ``},
+		[]string{`"`, `"`},
+		[]string{`'`, `'`},
+		[]string{`""`, ``},
+		[]string{`''`, ``},
 		[]string{`no quotes`, `no quotes`},
 		[]string{`"ended double quotes"`, `ended double quotes`},
 		[]string{`'ended single quotes'`, `ended single quotes`},
+		[]string{`"unterminated double`, `"unterminated double`},
+		[]string{`unterminated double"`, `unterminated double"`},
+		[]string{`"mismatched'`, `"mismatched'`},
 		[]string{`\"escaped ended double quotes\"`, `\"escaped ended double quotes\"`},
 		[]string{`\'escaped ended single quotes\'`, `\'escaped ended single quotes\'`},
 		[]string{`o"bscure double quotes"`, `o"bscure double quotes"`},
 		[]string{`o'bscure single quotes'`, `o'bscure single quotes'`},
+		// Escape-handling within a quoted string.
+		[]string{`"a\"b"`, `a"b`},
+		[]string{`"a\\b"`, `a\\b`},
+		[]string{`"a\nb"`, `a\nb`},
+		[]string{`"escaped \" quote"`, `escaped " quote`},
+		[]string{`"double \\\" escape"`, `double \\" escape`},
+		[]string{`"trailing\\"`, `trailing\\`},
 	}
 	for _, check := range checks {
 		in := check[0]
 		want := check[1]
 		have := dequote(in)
-		assert.Equal(t, have, want)
+		assert.Equal(t, want, have)
 	}
 }
 
@@ -69,6 +120,7 @@ func TestDoParse(t *testing.T) {
 func TestEnquote(t *testing.T) {
 	checks := [][]string{
 		// Input, expected output
+		[]string{``, ``},
 		[]string{`no-spaces-no-quotes`, `no-spaces-no-quotes`},
 		[]string{`"no-spaces-double-end-quotes"`, `"no-spaces-double-end-quotes"`},
 		[]string{`'no-spaces-single-end-quotes'`, `'no-spaces-single-end-quotes'`},
@@ -82,7 +134,108 @@ func TestEnquote(t *testing.T) {
 		in := check[0]
 		want := check[1]
 		have := enquote(in)
-		assert.Equal(t, have, want)
+		assert.Equal(t, want, have)
+	}
+}
+
+func TestDoParse_empty(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+	}{
+		{"empty", ""},
+		{"spaces", "     "},
+		{"tabs", "\t\t"},
+		{"mixed whitespace", " \t\n "},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			called := false
+			doParse(tt.in, func(flag, key, canonicalKey, value, trimmedValue string) {
+				called = true
+			})
+			assert.False(t, called, "handler should not be called for whitespace-only input")
+		})
+	}
+}
+
+func TestDoParse_tokens(t *testing.T) {
+	type token struct {
+		flag, key, canonicalKey, value, trimmedValue string
+	}
+	tests := []struct {
+		name string
+		in   string
+		want []token
+	}{
+		{
+			name: "valueless and valued",
+			in:   "noval key=val",
+			want: []token{
+				{"noval", "noval", "noval", "", ""},
+				{"key=val", "key", "key", "val", "val"},
+			},
+		},
+		{
+			name: "empty value after equals",
+			in:   "key=",
+			want: []token{
+				{"key=", "key", "key", "", ""},
+			},
+		},
+		{
+			name: "embedded equals in value",
+			in:   "key=a=b=c",
+			want: []token{
+				{"key=a=b=c", "key", "key", "a=b=c", "a=b=c"},
+			},
+		},
+		{
+			name: "collapses consecutive separators",
+			in:   "  a    b  ",
+			want: []token{
+				{"a", "a", "a", "", ""},
+				{"b", "b", "b", "", ""},
+			},
+		},
+		{
+			name: "quoted value with spaces stays one token",
+			in:   `key="value with spaces"`,
+			want: []token{
+				{`key="value with spaces"`, "key", "key", `"value with spaces"`, "value with spaces"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got []token
+			doParse(tt.in, func(flag, key, canonicalKey, value, trimmedValue string) {
+				got = append(got, token{flag, key, canonicalKey, value, trimmedValue})
+			})
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestParseToStruct_emptyAndWhitespace(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+	}{
+		{"empty", ""},
+		{"spaces", "   "},
+		{"tabs", "\t\t"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			k := parseToStruct(tt.in)
+			require.NotNil(t, k)
+			assert.Equal(t, 0, k.numParams)
+			assert.Nil(t, k.list)
+			assert.Nil(t, k.last)
+			assert.Empty(t, k.keyMap)
+			assertInvariants(t, k)
+		})
 	}
 }
 
