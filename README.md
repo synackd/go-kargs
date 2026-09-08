@@ -3,6 +3,29 @@
 <!-- Text width is 80, only use spaces and use 4 spaces instead of tabs -->
 <!-- vim: set et sta tw=80 ts=4 sw=4 sts=0: -->
 
+[![Latest release](https://img.shields.io/github/v/release/synackd/go-kargs)](https://github.com/synackd/go-kargs/releases/latest)
+[![Go Reference](https://pkg.go.dev/badge/github.com/synackd/go-kargs.svg)](https://pkg.go.dev/github.com/synackd/go-kargs)
+[![Test](https://github.com/synackd/go-kargs/actions/workflows/test.yml/badge.svg)](https://github.com/synackd/go-kargs/actions/workflows/test.yml)
+[![Coverage](https://coveralls.io/repos/github/synackd/go-kargs/badge.svg?branch=main)](https://coveralls.io/github/synackd/go-kargs?branch=main)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/synackd/go-kargs/badge)](https://scorecard.dev/viewer/?uri=github.com/synackd/go-kargs)
+
+<details>
+<summary>Additional project checks</summary>
+
+**Quality**
+
+[![Lint](https://github.com/synackd/go-kargs/actions/workflows/lint.yml/badge.svg)](https://github.com/synackd/go-kargs/actions/workflows/lint.yml)
+[![Release](https://github.com/synackd/go-kargs/actions/workflows/release.yml/badge.svg)](https://github.com/synackd/go-kargs/actions/workflows/release.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/synackd/go-kargs)](https://goreportcard.com/report/github.com/synackd/go-kargs)
+
+**Security**
+
+[![CodeQL](https://github.com/synackd/go-kargs/actions/workflows/codeql.yaml/badge.svg)](https://github.com/synackd/go-kargs/actions/workflows/codeql.yaml)
+[![Vulnerability Check](https://github.com/synackd/go-kargs/actions/workflows/govulncheck.yaml/badge.svg)](https://github.com/synackd/go-kargs/actions/workflows/govulncheck.yaml)
+
+</details>
+<br/>
+
 Read, set, delete, then write back out kernel command line arguments.
 
 ```go
@@ -62,6 +85,21 @@ go get github.com/synackd/go-kargs
 ```
 
 Import as `kargs "github.com/synackd/go-kargs"`
+
+## Development
+
+This library targets Go 1.17 and later. A `Makefile` provides the local checks
+that mirror the CI workflows (run `make help` for the full list):
+
+```
+make test        # run unit tests
+make race        # run unit tests with the race detector
+make coverage    # run tests and print a coverage summary
+make vet         # run go vet
+make lint        # run golangci-lint
+make govulncheck # run govulncheck
+make check       # run all of the above
+```
 
 ## Documentation
 
