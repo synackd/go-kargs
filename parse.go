@@ -36,7 +36,11 @@ func dequote(line string) string {
 	quotationMarks := `"'`
 
 	var quote byte
-	if strings.ContainsAny(string(line[0]), quotationMarks) {
+	// Only strip a surrounding quote pair when the string both begins and
+	// ends with the same quote character and is at least two characters
+	// long. This guards against a single stray quote (e.g. `"`), which
+	// would otherwise slice out of range.
+	if len(line) >= 2 && strings.ContainsAny(string(line[0]), quotationMarks) && line[len(line)-1] == line[0] {
 		quote = line[0]
 		line = line[1 : len(line)-1]
 	}

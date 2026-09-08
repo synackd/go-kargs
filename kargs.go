@@ -54,11 +54,13 @@ func NewKargsEmpty() *Kargs {
 func (k *Kargs) AppendKargs(line string) {
 	doParse(line, func(flag, key, canonicalKey, value, trimmedValue string) {
 		// If key exists, check if value already exists and do not
-		// append if so.
+		// append if so. Values are stored dequoted, so compare against
+		// the dequoted (trimmed) value to treat quoted and unquoted
+		// spellings of the same value as equal.
 		vals, keyIsSet := k.GetKarg(canonicalKey)
 		if keyIsSet {
 			for _, eVal := range vals {
-				if value == eVal {
+				if trimmedValue == eVal {
 					// Value already exists, do not append.
 					return
 				}
@@ -69,7 +71,7 @@ func (k *Kargs) AppendKargs(line string) {
 		newKarg := Karg{
 			Key:          key,
 			CanonicalKey: canonicalKey,
-			Value:        value,
+			Value:        trimmedValue,
 			Raw:          flag,
 		}
 		newKargItem := &kargItem{
@@ -99,13 +101,12 @@ func (k *Kargs) ContainsKarg(key string) bool {
 // list, returning an error if it was not found or a removal error occurs.
 func (k *Kargs) DeleteKarg(key string) error {
 	canonicalKey := canonicalizeKey(key)
-	if _, exists := k.keyMap[key]; exists {
+	if _, exists := k.keyMap[canonicalKey]; exists {
 		for _, ptr := range k.keyMap[canonicalKey] {
-			if err := remove(ptr); err != nil {
+			if err := k.unlink(ptr); err != nil {
 				return fmt.Errorf("failed to delete key %s with value %s: %w", key, ptr.karg.Value, err)
-			} else {
-				k.numParams--
 			}
+			k.numParams--
 		}
 		delete(k.keyMap, canonicalKey)
 	} else {
@@ -115,24 +116,22 @@ func (k *Kargs) DeleteKarg(key string) error {
 	return nil
 }
 
-// DeleteKarByValue only deletes the instance of key that has value of value.
+// DeleteKargByValue only deletes the instance of key that has value of value.
 func (k *Kargs) DeleteKargByValue(key, value string) error {
 	canonicalKey := canonicalizeKey(key)
-	if _, exists := k.keyMap[key]; exists {
+	if _, exists := k.keyMap[canonicalKey]; exists {
 		for idx, ptr := range k.keyMap[canonicalKey] {
 			if value == ptr.karg.Value {
-				if err := remove(ptr); err != nil {
+				if err := k.unlink(ptr); err != nil {
 					return fmt.Errorf("failed to delete key %s with value %s: %w", key, ptr.karg.Value, err)
 				}
 				if len(k.keyMap[canonicalKey]) == 1 {
-					k.keyMap[canonicalKey] = []*kargItem{}
-				} else if idx == len(k.keyMap[canonicalKey])-1 {
-					l := len(k.keyMap[canonicalKey]) - 1
-					k.keyMap[canonicalKey] = k.keyMap[canonicalKey][:l-1]
-				} else if idx == 0 {
-					k.keyMap[canonicalKey] = k.keyMap[canonicalKey][1:]
+					// Last value for this key; remove the map
+					// entry entirely so the key is no longer
+					// considered set.
+					delete(k.keyMap, canonicalKey)
 				} else {
-					k.keyMap[canonicalKey] = append(k.keyMap[canonicalKey][:idx], k.keyMap[canonicalKey][(idx+1):]...)
+					k.keyMap[canonicalKey] = append(k.keyMap[canonicalKey][:idx], k.keyMap[canonicalKey][idx+1:]...)
 				}
 				k.numParams--
 				return nil
@@ -211,31 +210,25 @@ func (k *Kargs) SetKarg(key, value string) error {
 		karg: newKarg,
 	}
 	if ptrList, exists := k.keyMap[canonicalKey]; exists {
-		// Karg already exists with one or more values. Set the first
-		// value to the new one and remove all of the others.
+		// Karg already exists with one or more values. Replace the
+		// first occurrence in-place (preserving its position in the
+		// list) with the new value and remove all of the others.
 		for pidx, ptr := range ptrList {
 			if ptr == nil {
 				continue
 			}
 			if pidx == 0 {
-				if ptr.next == nil {
-					k.last = newKargItem
-				}
-				if ptr.prev == nil {
-					k.list = newKargItem
-				}
-				if err := replace(ptr, newKargItem); err != nil {
+				if err := k.substitute(ptr, newKargItem); err != nil {
 					return fmt.Errorf("failed to replace existing karg value: %w", err)
 				}
-				k.keyMap[canonicalKey][pidx] = newKargItem
-				k.keyMap[canonicalKey] = []*kargItem{newKargItem}
 			} else {
-				if err := remove(ptr); err != nil {
+				if err := k.unlink(ptr); err != nil {
 					return fmt.Errorf("failed to remove karg: %w", err)
 				}
 				k.numParams--
 			}
 		}
+		k.keyMap[canonicalKey] = []*kargItem{newKargItem}
 	} else {
 		// Karg is new. Append it to the end of the list and set the
 		// last pointer to it.
