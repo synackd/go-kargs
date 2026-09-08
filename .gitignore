@@ -1,0 +1,16 @@
+# Editor artifacts
+.vscode/
+*.swp
+*.swo
+*.swn
+.*.sw?
+*~
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Test/coverage artifacts
+coverage.out
+*.cover
+*.out
