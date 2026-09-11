@@ -1,0 +1,66 @@
+# Use of this source code is governed by the LICENSE file in this module's root
+# directory.
+
+name: release
+
+on:
+  workflow_dispatch: # enable manual triggering of workflow
+  push:
+    tags:
+      - v*
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Run unit tests
+        run: make test
+
+      - name: Run go vet
+        run: make vet
+
+  release:
+    name: release
+    needs:
+      - validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-tags: 1
+          fetch-depth: 0
+
+      - name: Create GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          # go-kargs is a source-only Go module: consumers fetch it by tag via
+          # the Go module proxy, so there are no artifacts to attach. Publish a
+          # GitHub Release with auto-generated notes. A hyphen in the version
+          # (e.g. v1.0.0-beta.1) denotes a pre-release per SemVer.
+          prerelease_flag=""
+          case "${TAG}" in
+            *-*) prerelease_flag="--prerelease" ;;
+          esac
+          gh release create "${TAG}" \
+            --title "${TAG}" \
+            --generate-notes \
+            ${prerelease_flag}

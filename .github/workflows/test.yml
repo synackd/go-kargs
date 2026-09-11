@@ -1,0 +1,89 @@
+# Use of this source code is governed by the LICENSE file in this module's root
+# directory.
+
+name: test
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  unit-test:
+    name: unit-test (Go ${{ matrix.go }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # Test the version declared in go.mod as well as the latest stable
+        # release for additional compatibility.
+        include:
+          - go: file
+            go-version-file: go.mod
+          - go: stable
+            go-version: stable
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go ${{ matrix.go }}
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ matrix.go-version }}
+          go-version-file: ${{ matrix.go-version-file }}
+
+      - name: Run unit tests
+        run: make test
+
+  race:
+    name: race
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Run unit tests with the race detector
+        run: make race
+
+  vet:
+    name: vet
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Run go vet
+        run: make vet
+
+  test:
+    name: test
+    if: ${{ always() }}
+    needs:
+      - unit-test
+      - race
+      - vet
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify test jobs passed
+        run: |
+          [[ "${{ needs.unit-test.result }}" == "success" ]]
+          [[ "${{ needs.race.result }}" == "success" ]]
+          [[ "${{ needs.vet.result }}" == "success" ]]

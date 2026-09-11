@@ -1,0 +1,23 @@
+# Use of this source code is governed by the LICENSE file in this module's root
+# directory.
+
+version: "2"
+linters:
+  # Start from the default set of linters and add a few high-signal ones that
+  # are appropriate for a small library.
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell
+    - unconvert
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/synackd/go-kargs

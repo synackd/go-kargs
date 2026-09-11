@@ -1,0 +1,64 @@
+# Use of this source code is governed by the LICENSE file in this module's root
+# directory.
+
+name: lint
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  golangci:
+    name: Run golangci-lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.0.0
+        with:
+          version: v2.13.2
+
+  modules:
+    name: Check Go modules
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Check go.mod and go.sum
+        run: |
+          make mod
+          git diff --exit-code -- go.mod go.sum
+
+  lint:
+    name: lint
+    if: ${{ always() }}
+    needs:
+      - golangci
+      - modules
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify lint jobs passed
+        run: |
+          [[ "${{ needs.golangci.result }}" == "success" ]]
+          [[ "${{ needs.modules.result }}" == "success" ]]

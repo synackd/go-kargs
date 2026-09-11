@@ -145,7 +145,7 @@ func (k *Kargs) DeleteKargByValue(key, value string) error {
 }
 
 // FlagsForModule gets all flags for a designated module and returns them as a
-// space-seperated string designed to be passed to insmod. Note that similarly
+// space-separated string designed to be passed to insmod. Note that similarly
 // to flags, module names with - and _ are treated the same.
 func (k *Kargs) FlagsForModule(name string) string {
 	var ret string
@@ -162,7 +162,7 @@ func (k *Kargs) FlagsForModule(name string) string {
 			} else {
 				first = false
 			}
-			// They are passed to insmod space seperated as flag=val
+			// They are passed to insmod space-separated as flag=val
 			if llTracker.karg.Value == "" {
 				ret += strings.TrimPrefix(canonicalFlag, prefix)
 			} else {

@@ -14,15 +14,15 @@ import (
 func TestCanonicalizeKey(t *testing.T) {
 	checks := [][]string{
 		// Input, expected output
-		[]string{``, ``},
-		[]string{`with-hyphens`, `with_hyphens`},
-		[]string{`with_underscores`, `with_underscores`},
-		[]string{`with-many-hyphens`, `with_many_hyphens`},
-		[]string{`mix-ed_and_mix-ed`, `mix_ed_and_mix_ed`},
-		[]string{`-leading`, `_leading`},
-		[]string{`trailing-`, `trailing_`},
-		[]string{`---`, `___`},
-		[]string{`___`, `___`},
+		{"", ""},
+		{`with-hyphens`, `with_hyphens`},
+		{`with_underscores`, `with_underscores`},
+		{`with-many-hyphens`, `with_many_hyphens`},
+		{`mix-ed_and_mix-ed`, `mix_ed_and_mix_ed`},
+		{`-leading`, `_leading`},
+		{`trailing-`, `trailing_`},
+		{`---`, `___`},
+		{`___`, `___`},
 	}
 	for _, check := range checks {
 		in := check[0]
@@ -62,28 +62,28 @@ func TestCheckKey(t *testing.T) {
 func TestDequote(t *testing.T) {
 	checks := [][]string{
 		// Input, expected output
-		[]string{``, ``},
-		[]string{`"`, `"`},
-		[]string{`'`, `'`},
-		[]string{`""`, ``},
-		[]string{`''`, ``},
-		[]string{`no quotes`, `no quotes`},
-		[]string{`"ended double quotes"`, `ended double quotes`},
-		[]string{`'ended single quotes'`, `ended single quotes`},
-		[]string{`"unterminated double`, `"unterminated double`},
-		[]string{`unterminated double"`, `unterminated double"`},
-		[]string{`"mismatched'`, `"mismatched'`},
-		[]string{`\"escaped ended double quotes\"`, `\"escaped ended double quotes\"`},
-		[]string{`\'escaped ended single quotes\'`, `\'escaped ended single quotes\'`},
-		[]string{`o"bscure double quotes"`, `o"bscure double quotes"`},
-		[]string{`o'bscure single quotes'`, `o'bscure single quotes'`},
+		{``, ``},
+		{`"`, `"`},
+		{`'`, `'`},
+		{`""`, ``},
+		{`''`, ``},
+		{`no quotes`, `no quotes`},
+		{`"ended double quotes"`, `ended double quotes`},
+		{`'ended single quotes'`, `ended single quotes`},
+		{`"unterminated double`, `"unterminated double`},
+		{`unterminated double"`, `unterminated double"`},
+		{`"mismatched'`, `"mismatched'`},
+		{`\"escaped ended double quotes\"`, `\"escaped ended double quotes\"`},
+		{`\'escaped ended single quotes\'`, `\'escaped ended single quotes\'`},
+		{`o"bscure double quotes"`, `o"bscure double quotes"`},
+		{`o'bscure single quotes'`, `o'bscure single quotes'`},
 		// Escape-handling within a quoted string.
-		[]string{`"a\"b"`, `a"b`},
-		[]string{`"a\\b"`, `a\\b`},
-		[]string{`"a\nb"`, `a\nb`},
-		[]string{`"escaped \" quote"`, `escaped " quote`},
-		[]string{`"double \\\" escape"`, `double \\" escape`},
-		[]string{`"trailing\\"`, `trailing\\`},
+		{`"a\"b"`, `a"b`},
+		{`"a\\b"`, `a\\b`},
+		{`"a\nb"`, `a\nb`},
+		{`"escaped \" quote"`, `escaped " quote`},
+		{`"double \\\" escape"`, `double \\" escape`},
+		{`"trailing\\"`, `trailing\\`},
 	}
 	for _, check := range checks {
 		in := check[0]
@@ -120,15 +120,15 @@ func TestDoParse(t *testing.T) {
 func TestEnquote(t *testing.T) {
 	checks := [][]string{
 		// Input, expected output
-		[]string{``, ``},
-		[]string{`no-spaces-no-quotes`, `no-spaces-no-quotes`},
-		[]string{`"no-spaces-double-end-quotes"`, `"no-spaces-double-end-quotes"`},
-		[]string{`'no-spaces-single-end-quotes'`, `'no-spaces-single-end-quotes'`},
-		[]string{`spaces no quotes`, `"spaces no quotes"`},
-		[]string{`"spaces double end quotes"`, `"spaces double end quotes"`},
-		[]string{`'spaces single end quotes'`, `'spaces single end quotes'`},
-		[]string{`spaces" obscure double quotes"`, `"spaces\" obscure double quotes\""`},
-		[]string{`spaces' obscure single quotes'`, `"spaces' obscure single quotes'"`},
+		{``, ``},
+		{`no-spaces-no-quotes`, `no-spaces-no-quotes`},
+		{`"no-spaces-double-end-quotes"`, `"no-spaces-double-end-quotes"`},
+		{`'no-spaces-single-end-quotes'`, `'no-spaces-single-end-quotes'`},
+		{`spaces no quotes`, `"spaces no quotes"`},
+		{`"spaces double end quotes"`, `"spaces double end quotes"`},
+		{`'spaces single end quotes'`, `'spaces single end quotes'`},
+		{`spaces" obscure double quotes"`, `"spaces\" obscure double quotes\""`},
+		{`spaces' obscure single quotes'`, `"spaces' obscure single quotes'"`},
 	}
 	for _, check := range checks {
 		in := check[0]
@@ -275,14 +275,14 @@ func TestParseToStruct(t *testing.T) {
 
 	// Make sure present keys in key map are expected and have expected number
 	// of values
-	for km, _ := range k.keyMap {
+	for km := range k.keyMap {
 		keyLen, exists := expKeyLens[km]
 		assert.True(t, exists)
 		assert.Len(t, k.keyMap[km], keyLen)
 	}
 
 	// Make sure there aren't any extra keys in key map
-	for km, _ := range expKeyLens {
+	for km := range expKeyLens {
 		_, exists := k.keyMap[km]
 		assert.True(t, exists)
 	}
