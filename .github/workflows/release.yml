@@ -24,13 +24,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: stable
+          go-version-file: go.mod
 
       - name: Run unit tests
-        run: go test ./...
+        run: make test
 
       - name: Run go vet
-        run: go vet ./...
+        run: make vet
 
   release:
     name: release

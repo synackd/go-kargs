@@ -20,11 +20,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Test the declared minimum supported Go version (see go.mod) as well
-        # as the latest stable release.
-        go:
-          - "1.17"
-          - stable
+        # Test the version declared in go.mod as well as the latest stable
+        # release for additional compatibility.
+        include:
+          - go: file
+            go-version-file: go.mod
+          - go: stable
+            go-version: stable
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -32,10 +34,11 @@ jobs:
       - name: Set up Go ${{ matrix.go }}
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: ${{ matrix.go }}
+          go-version: ${{ matrix.go-version }}
+          go-version-file: ${{ matrix.go-version-file }}
 
       - name: Run unit tests
-        run: go test -v ./...
+        run: make test
 
   race:
     name: race
@@ -48,10 +51,10 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: stable
+          go-version-file: go.mod
 
       - name: Run unit tests with the race detector
-        run: go test -race ./...
+        run: make race
 
   vet:
     name: vet
@@ -64,10 +67,10 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: stable
+          go-version-file: go.mod
 
       - name: Run go vet
-        run: go vet ./...
+        run: make vet
 
   test:
     name: test

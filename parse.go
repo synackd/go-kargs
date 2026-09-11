@@ -12,7 +12,7 @@ import (
 // Kernel variables must allow '-' and '_' to be equivalent in variable names.
 // The canonicalized key will replace '-' with '_' in the keys.
 func canonicalizeKey(key string) string {
-	return strings.Replace(key, "-", "_", -1)
+	return strings.ReplaceAll(key, "-", "_")
 }
 
 // checkKey checks the given unquoted key for invalid characters and errs if any
@@ -53,9 +53,10 @@ func dequote(line string) string {
 		} else if c == quote {
 			if len(context) > 0 {
 				last := context[len(context)-1]
-				if last == c {
+				switch last {
+				case c:
 					context = context[:len(context)-1]
-				} else if last == '\\' {
+				case '\\':
 					// Delete one level of backslash
 					newLine = newLine[:len(newLine)-1]
 					context = []byte{}
@@ -97,7 +98,7 @@ func doParse(input string, handler func(flag, key, canonicalKey, value, trimmedV
 		}
 	}
 
-	for _, flag := range strings.FieldsFunc(string(input), quotedFieldsCheck) {
+	for _, flag := range strings.FieldsFunc(input, quotedFieldsCheck) {
 		// Split the flag into a key and value
 		split := strings.Index(flag, "=")
 
@@ -148,8 +149,8 @@ func parseToStruct(input string) *Kargs {
 	var (
 		last      *kargItem
 		ll        *kargItem
-		llTracker     = ll
-		numParams int = 0
+		llTracker = ll
+		numParams = 0
 	)
 	keyMap := make(map[string][]*kargItem)
 	doParse(input, func(flag, key, canonicalKey, value, trimmedValue string) {

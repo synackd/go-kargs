@@ -10,6 +10,13 @@ GO            ?= $(shell command -v go 2>/dev/null)
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null)
 GOVULNCHECK   ?= $(shell command -v govulncheck 2>/dev/null)
 
+# Go toolchain version – taken from go.mod (defaults to the version
+# declared in the module). Allows the Makefile to force the exact
+# toolchain used by all Go-related commands (go, golangci-lint, etc.).
+GO_TOOLCHAIN_VERSION ?= $(shell awk '/^go / {print $$2; exit}' go.mod)
+# Exported env-var that forces Go tools to use the selected toolchain.
+GOTOOLCHAIN ?= go$(GO_TOOLCHAIN_VERSION)
+
 # Coverage profile output.
 COVERPROFILE ?= coverage.out
 
@@ -35,38 +42,38 @@ help: ## Show this help
 .PHONY: test
 test: ## Run unit tests
 	$(call require-command,$(GO),go)
-	$(GO) test -v ./...
+	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) test -v ./...
 
 .PHONY: race
 race: ## Run unit tests with the race detector
 	$(call require-command,$(GO),go)
-	$(GO) test -race ./...
+	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) test -race ./...
 
 .PHONY: coverage
 coverage: ## Run unit tests and generate a coverage profile
 	$(call require-command,$(GO),go)
-	$(GO) test -covermode=atomic -coverprofile=$(COVERPROFILE) ./...
-	$(GO) tool cover -func=$(COVERPROFILE)
+	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) test -covermode=atomic -coverprofile=$(COVERPROFILE) ./...
+	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) tool cover -func=$(COVERPROFILE)
 
 .PHONY: vet
 vet: ## Run go vet
 	$(call require-command,$(GO),go)
-	$(GO) vet ./...
+	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) vet ./...
 
 .PHONY: lint
 lint: ## Run golangci-lint
 	$(call require-command,$(GOLANGCI_LINT),golangci-lint)
-	$(GOLANGCI_LINT) run
+	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GOLANGCI_LINT) run
 
 .PHONY: govulncheck
 govulncheck: ## Run govulncheck
 	$(call require-command,$(GOVULNCHECK),govulncheck)
-	$(GOVULNCHECK) ./...
+	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GOVULNCHECK) ./...
 
 .PHONY: mod
 mod: ## Download and prune Go modules
 	$(call require-command,$(GO),go)
-	$(GO) mod tidy
+	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) mod tidy
 
 .PHONY: check
 check: test race vet lint govulncheck ## Run all local checks
