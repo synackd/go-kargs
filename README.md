@@ -95,7 +95,7 @@ Import as `kargs "github.com/synackd/go-kargs"`
 
 ## Development
 
-This library targets Go 1.17 and later. A `Makefile` provides the local checks
+This library targets Go 1.23.10 and later. A `Makefile` provides the local checks
 that mirror the CI workflows (run `make help` for the full list):
 
 ```
