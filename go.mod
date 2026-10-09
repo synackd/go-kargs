@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: © 2025 synack.d
+//
+// SPDX-License-Identifier: BSD-3-Clause
+
 module github.com/synackd/go-kargs
 
 go 1.23.10

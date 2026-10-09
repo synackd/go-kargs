@@ -1,5 +1,6 @@
-// Use of this source code is governed by the LICENSE file in this module's root
-// directory.
+// SPDX-FileCopyrightText: © 2026 synack.d
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 // This file provides shared structural checks for unit and fuzz tests.
 // The checks verify that the ordered linked list, canonical-key index, and

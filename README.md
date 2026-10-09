@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: © 2025 synack.d
+
+SPDX-License-Identifier: BSD-3-Clause
+-->
+
 # go-kargs: parse and manipulate kernel command line arguments
 
 <!-- Text width is 80, only use spaces and use 4 spaces instead of tabs -->
@@ -15,6 +21,7 @@
 **Quality**
 
 [![Lint](https://github.com/synackd/go-kargs/actions/workflows/lint.yml/badge.svg)](https://github.com/synackd/go-kargs/actions/workflows/lint.yml)
+[![REUSE compliance check](https://github.com/synackd/go-kargs/actions/workflows/reuse.yaml/badge.svg)](https://github.com/synackd/go-kargs/actions/workflows/reuse.yaml)
 [![Release](https://github.com/synackd/go-kargs/actions/workflows/release.yml/badge.svg)](https://github.com/synackd/go-kargs/actions/workflows/release.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/synackd/go-kargs)](https://goreportcard.com/report/github.com/synackd/go-kargs)
 
@@ -98,8 +105,12 @@ make coverage    # run tests and print a coverage summary
 make vet         # run go vet
 make lint        # run golangci-lint
 make govulncheck # run govulncheck
+make reuse       # check REUSE compliance
 make check       # run all of the above
 ```
+
+The REUSE check requires the `reuse` tool (CI uses version 6.2.0). Install it
+with `pipx install reuse==6.2.0` before running `make reuse` or `make check`.
 
 ### Fuzzing
 

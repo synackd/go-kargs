@@ -1,5 +1,6 @@
-# Use of this source code is governed by the LICENSE file in this module's root
-# directory.
+# SPDX-FileCopyrightText: © 2026 synack.d
+#
+# SPDX-License-Identifier: BSD-3-Clause
 
 name: lint
 

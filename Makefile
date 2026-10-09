@@ -1,5 +1,6 @@
-# Use of this source code is governed by the LICENSE file in this module's root
-# directory.
+# SPDX-FileCopyrightText: © 2026 synack.d
+#
+# SPDX-License-Identifier: BSD-3-Clause
 
 # go-kargs is a source-only Go library, so there are no build/install targets.
 # This Makefile only provides local development checks that mirror the CI
@@ -9,6 +10,7 @@
 GO            ?= $(shell command -v go 2>/dev/null)
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null)
 GOVULNCHECK   ?= $(shell command -v govulncheck 2>/dev/null)
+REUSE         ?= $(shell command -v reuse 2>/dev/null)
 
 # Go toolchain version – taken from go.mod (defaults to the version
 # declared in the module). Allows the Makefile to force the exact
@@ -92,13 +94,18 @@ govulncheck: ## Run govulncheck
 	$(call require-command,$(GOVULNCHECK),govulncheck)
 	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GOVULNCHECK) ./...
 
+.PHONY: reuse
+reuse: ## Check REUSE compliance
+	$(call require-command,$(REUSE),reuse)
+	$(REUSE) lint --lines
+
 .PHONY: mod
 mod: ## Download and prune Go modules
 	$(call require-command,$(GO),go)
 	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) mod tidy
 
 .PHONY: check
-check: test race vet lint govulncheck ## Run all local checks
+check: test race vet lint govulncheck reuse ## Run all local checks
 
 .PHONY: clean
 clean: ## Remove generated artifacts
