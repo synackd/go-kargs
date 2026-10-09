@@ -20,6 +20,10 @@ GOTOOLCHAIN ?= go$(GO_TOOLCHAIN_VERSION)
 # Coverage profile output.
 COVERPROFILE ?= coverage.out
 
+# Budget per fuzz target and number of fuzz workers.
+FUZZTIME     ?= 30s
+FUZZPARALLEL ?= 2
+
 # Function to check that a command is available and error if it is not.
 #
 # Arg 1: Command path (can be a variable like $(GO) or a direct path)
@@ -48,6 +52,24 @@ test: ## Run unit tests
 race: ## Run unit tests with the race detector
 	$(call require-command,$(GO),go)
 	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) test -race ./...
+
+.PHONY: fuzz fuzz-parse fuzz-set fuzz-mutations
+fuzz: ## Fuzz all targets sequentially (FUZZTIME per target)
+	$(MAKE) fuzz-parse
+	$(MAKE) fuzz-set
+	$(MAKE) fuzz-mutations
+
+fuzz-parse: ## Fuzz parsing arbitrary command lines
+	$(call require-command,$(GO),go)
+	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) test -run='^$$' -fuzz='^FuzzParse$$' -fuzztime=$(FUZZTIME) -parallel=$(FUZZPARALLEL) .
+
+fuzz-set: ## Fuzz setting arbitrary keys and values
+	$(call require-command,$(GO),go)
+	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) test -run='^$$' -fuzz='^FuzzSetKarg$$' -fuzztime=$(FUZZTIME) -parallel=$(FUZZPARALLEL) .
+
+fuzz-mutations: ## Fuzz edit sequences against an ordered model
+	$(call require-command,$(GO),go)
+	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) test -run='^$$' -fuzz='^FuzzMutations$$' -fuzztime=$(FUZZTIME) -parallel=$(FUZZPARALLEL) .
 
 .PHONY: coverage
 coverage: ## Run unit tests and generate a coverage profile

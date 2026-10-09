@@ -101,6 +101,34 @@ make govulncheck # run govulncheck
 make check       # run all of the above
 ```
 
+### Fuzzing
+
+Native Go fuzz tests cover arbitrary parsing inputs, setting keys and values,
+and append/set/delete sequences checked against an independent ordered model.
+`make test` runs all seed cases and saved regression inputs. Active fuzzing is
+separate from `make check`:
+
+```
+make fuzz                           # run each target for 30 seconds, sequentially
+make fuzz FUZZTIME=5m               # spend five minutes on each target
+make fuzz-parse                     # fuzz the parser only
+make fuzz-set                       # fuzz SetKarg only
+make fuzz-mutations FUZZPARALLEL=4  # fuzz edit sequences with four workers
+```
+
+The default is two workers. CI fuzzes all three targets for 30 seconds each
+on pushes to `main` and pull requests, using the Go version in `go.mod`.
+
+Go saves minimized failures under `testdata/fuzz/<target>/<hash>`. Replay a
+failure with the command Go prints, for example:
+
+```
+go test -run='FuzzParse/<hash>' .
+```
+
+See the [Go fuzzing guide](https://go.dev/doc/security/fuzz/) for more
+information.
+
 ## Documentation
 
 See https://pkg.go.dev/github.com/synackd/go-kargs
