@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: © 2026 synack.d
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+version = 1
+
+[[annotations]]
+path = ["go.sum"]
+precedence = "override"
+SPDX-FileCopyrightText = "© 2025 synack.d"
+SPDX-License-Identifier = "BSD-3-Clause"
+[[annotations]]
+path = ["renovate.json"]
+precedence = "override"
+SPDX-FileCopyrightText = "© 2026 synack.d"
+SPDX-License-Identifier = "BSD-3-Clause"

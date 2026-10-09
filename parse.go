@@ -1,5 +1,7 @@
-// Use of this source code is governed by the LICENSE file in this module's root
-// directory.
+// SPDX-FileCopyrightText: © 2025 synack.d
+// SPDX-FileCopyrightText: © 2012-2019 u-root Authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 package kargs
 
